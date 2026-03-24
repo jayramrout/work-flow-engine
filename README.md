@@ -6,7 +6,7 @@ A production-ready distributed workflow execution engine built with Spring Boot,
 
 ### Prerequisites
 - Docker & Docker Compose
-- Java 17+ (if running locally without Docker)
+- Java 21+ (if running locally without Docker)
 - Maven 3.9+ (if building locally)
 
 ### Build & Run
