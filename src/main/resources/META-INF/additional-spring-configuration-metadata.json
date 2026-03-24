@@ -1,0 +1,41 @@
+{
+  "properties": [
+    {
+      "name": "worker.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Enables the RabbitMQ worker listener that consumes workflow tasks."
+    },
+    {
+      "name": "worker.queue-poll-interval-ms",
+      "type": "java.lang.Long",
+      "defaultValue": 1000,
+      "description": "Polling interval used by the scheduler to scan for executable workflow steps."
+    },
+    {
+      "name": "worker.max-retry-attempts",
+      "type": "java.lang.Integer",
+      "defaultValue": 3,
+      "description": "Default maximum retry attempts for a workflow step when retryConfig is not provided in the workflow definition."
+    },
+    {
+      "name": "worker.retry-backoff-multiplier",
+      "type": "java.lang.Double",
+      "defaultValue": 2.0,
+      "description": "Default exponential backoff multiplier for retries when retryConfig is not provided in the workflow definition."
+    },
+    {
+      "name": "worker.initial-retry-delay-ms",
+      "type": "java.lang.Long",
+      "defaultValue": 1000,
+      "description": "Default initial delay in milliseconds before retrying a workflow step when retryConfig is not provided in the workflow definition."
+    },
+    {
+      "name": "scheduler.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Enables scheduled publishing of ready workflow steps onto the worker task queue."
+    }
+  ]
+}
+

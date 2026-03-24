@@ -1,0 +1,151 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: workflow_postgres
+    environment:
+      POSTGRES_USER: workflow_user
+      POSTGRES_PASSWORD: workflow_password
+      POSTGRES_DB: workflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workflow_user -d workflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workflow_network
+
+  # Redis for distributed locks and caching
+  redis:
+    image: redis:7-alpine
+    container_name: workflow_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workflow_network
+
+  # RabbitMQ for task distribution
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: workflow_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workflow_network
+
+  # Workflow Engine API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workflow_api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workflow_db
+      SPRING_DATASOURCE_USERNAME: workflow_user
+      SPRING_DATASOURCE_PASSWORD: workflow_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      WORKER_ENABLED: "false"
+      SCHEDULER_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - workflow_network
+
+  # Worker Node 1
+  worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workflow_worker_1
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workflow_db
+      SPRING_DATASOURCE_USERNAME: workflow_user
+      SPRING_DATASOURCE_PASSWORD: workflow_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SERVER_PORT: 8081
+      WORKER_ENABLED: "true"
+      SCHEDULER_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - workflow_network
+
+  # Worker Node 2 (optional, for demonstrating parallel execution)
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workflow_worker_2
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workflow_db
+      SPRING_DATASOURCE_USERNAME: workflow_user
+      SPRING_DATASOURCE_PASSWORD: workflow_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SERVER_PORT: 8082
+      WORKER_ENABLED: "true"
+      SCHEDULER_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - workflow_network
+
+networks:
+  workflow_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

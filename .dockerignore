@@ -1,0 +1,8 @@
+# Exclude everything by default
+*
+
+# Allow the pre-built JAR
+!target/
+target/*
+!target/work-flow-engine-1.0.0.jar
+
