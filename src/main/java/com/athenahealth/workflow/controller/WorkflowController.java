@@ -109,6 +109,26 @@ public class WorkflowController {
     }
 
     /**
+     * Delete a workflow by ID.
+     * DELETE /workflows/{id}
+     */
+    @Operation(summary = "Delete a workflow", description = "Deletes an existing workflow definition by its ID.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Workflow deleted", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Workflow not found", content = @Content)
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWorkflow(
+            @Parameter(description = "Workflow ID", required = true, example = "1") @PathVariable Long id) {
+        try {
+            workflowService.deleteWorkflow(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
      * Submit a new execution of a workflow.
      * POST /workflows/{id}/executions
      */

@@ -38,13 +38,14 @@ public class WorkerService {
     @RabbitListener(queues = RabbitMQConfig.TASK_QUEUE)
     public void processTask(WorkerTask task) {
         String lockKey = LOCK_PREFIX + task.getExecutionId() + ":" + task.getStepId();
+        boolean lockAcquired = false;
 
         try {
             // Attempt to acquire distributed lock
-            Boolean lockAcquired = redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, "LOCKED", Duration.ofSeconds(LOCK_TIMEOUT_SECONDS));
+            lockAcquired = Boolean.TRUE.equals(redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "LOCKED", Duration.ofSeconds(LOCK_TIMEOUT_SECONDS)));
 
-            if (!Boolean.TRUE.equals(lockAcquired)) {
+            if (!lockAcquired) {
                 log.debug("Could not acquire lock for step. ExecutionId: {}, StepId: {}",
                     task.getExecutionId(), task.getStepId());
                 // Don't retry - another worker has it
@@ -72,8 +73,10 @@ public class WorkerService {
             log.error("Unexpected error processing task. ExecutionId: {}, StepId: {}",
                 task.getExecutionId(), task.getStepId(), e);
         } finally {
-            // Release lock
-            redisTemplate.delete(lockKey);
+            // Only release the lock if this thread actually acquired it
+            if (lockAcquired) {
+                redisTemplate.delete(lockKey);
+            }
         }
     }
 

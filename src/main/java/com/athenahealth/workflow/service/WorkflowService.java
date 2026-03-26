@@ -72,6 +72,18 @@ public class WorkflowService {
     }
 
     /**
+     * Delete a workflow by ID.
+     * Throws IllegalArgumentException if the workflow does not exist.
+     */
+    public void deleteWorkflow(Long id) {
+        if (!workflowRepository.existsById(id)) {
+            throw new IllegalArgumentException("Workflow not found: " + id);
+        }
+        workflowRepository.deleteById(id);
+        log.info("Deleted workflow id={}", id);
+    }
+
+    /**
      * Validate workflow DAG structure.
      * Checks:
      * - All steps have unique IDs
